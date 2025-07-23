@@ -159,7 +159,7 @@ const EditMember = () => {
               <div>
                 <label className="block font-medium mb-1">Current Image</label>
                 <img
-                  src={`http://localhost:5000/uploads/${existingImage}`}
+                 src={`${import.meta.env.VITE_STATIC_URL}/uploads/${existingImage}`}
                   alt="Current"
                   className="h-32 object-cover rounded"
                 />

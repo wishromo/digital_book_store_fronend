@@ -39,35 +39,37 @@ const MemberDetailsPage = () => {
   if (!member) return <div className="text-center mt-8 text-gray-600">Member not found.</div>;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8 bg-white shadow-md rounded">
-      <h2 className="text-2xl font-bold mb-6 text-center">Member Details</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-xl bg-white shadow-md rounded p-6">
+        <h2 className="text-2xl font-bold mb-6 text-center">Member Details</h2>
 
-      {member.profileImage ? (
-        <img
-          src={`${import.meta.env.VITE_STATIC_URL}/uploads/${member.profileImage}`}
-          alt={member.name}
-          className="w-32 h-32 mx-auto rounded-full object-cover mb-4"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = 'https://via.placeholder.com/150?text=No+Image';
-          }}
-        />
-      ) : (
-        <div className="w-32 h-32 bg-gray-200 mx-auto flex items-center justify-center rounded-full mb-4 text-gray-500">
-          No Photo
+        {member.profileImage ? (
+          <img
+            src={`${import.meta.env.VITE_STATIC_URL}/uploads/${member.profileImage}`}
+            alt={member.name}
+            className="w-32 h-32 mx-auto rounded-full object-cover mb-4"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/150?text=No+Image';
+            }}
+          />
+        ) : (
+          <div className="w-32 h-32 bg-gray-200 mx-auto flex items-center justify-center rounded-full mb-4 text-gray-500">
+            No Photo
+          </div>
+        )}
+
+        <div className="space-y-2 text-center">
+          <p><strong>Name:</strong> {member.name}</p>
+          <p><strong>Email:</strong> {member.email}</p>
+          <p><strong>Role:</strong> {member.role}</p>
+          <p className="text-sm text-gray-500">
+            <strong>Created At:</strong> {new Date(member.createdAt).toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500">
+            <strong>Last Updated:</strong> {new Date(member.updatedAt).toLocaleString()}
+          </p>
         </div>
-      )}
-
-      <div className="space-y-2 text-center">
-        <p><strong>Name:</strong> {member.name}</p>
-        <p><strong>Email:</strong> {member.email}</p>
-        <p><strong>Role:</strong> {member.role}</p>
-        <p className="text-sm text-gray-500">
-          <strong>Created At:</strong> {new Date(member.createdAt).toLocaleString()}
-        </p>
-        <p className="text-sm text-gray-500">
-          <strong>Last Updated:</strong> {new Date(member.updatedAt).toLocaleString()}
-        </p>
       </div>
     </div>
   );

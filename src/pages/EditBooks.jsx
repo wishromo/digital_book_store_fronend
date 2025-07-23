@@ -316,79 +316,66 @@ import useAuth from '../hooks/useAuth';
 const EditBook = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { auth } = useAuth(); // Get auth context
+  const { auth } = useAuth();
 
-  // States for individual form fields
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
   const [price, setPrice] = useState('');
 
-  // States to store the filenames of current/existing files for display
   const [currentCoverImage, setCurrentCoverImage] = useState('');
   const [currentBookPdf, setCurrentBookPdf] = useState('');
-
-  // States to hold the NEW file objects selected by the user
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [bookPdfFile, setBookPdfFile] = useState(null);
 
-  // UI states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    // 1. Check if auth state is still loading
     if (auth?.loading) {
-      setLoading(true); // Keep loading state true while auth loads
-      return; // Do nothing until auth is ready
+      setLoading(true);
+      return;
     }
 
-    // 2. After auth state is loaded, check user role
     if (auth?.user?.role !== 'admin') {
       setError('Unauthorized: Admins only. Redirecting to home...');
-      setTimeout(() => navigate('/'), 2000); // Redirect unauthorized users
-      return; // Stop further execution
+      setTimeout(() => navigate('/'), 2000);
+      return;
     }
 
-    // 3. Fetch book data once authorized and loaded
     const fetchBook = async () => {
       try {
-        setLoading(true); // Ensure loading is true when starting fetch
+        setLoading(true);
         const res = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/books/${id}`, {
           headers: {
-            Authorization: `Bearer ${auth?.accessToken}`, // Pass token for authentication
+            Authorization: `Bearer ${auth?.accessToken}`,
           },
         });
         const data = res.data;
-        // Populate individual states with fetched book data
         setTitle(data.title || '');
         setAuthor(data.author || '');
         setDescription(data.description || '');
         setGenre(data.genre || '');
         setPrice(data.price || '');
-        setCurrentCoverImage(data.coverImage || ''); // Store current filename for display
-        setCurrentBookPdf(data.bookpdf || '');       // Store current filename for display
-        setLoading(false); // Data loaded
+        setCurrentCoverImage(data.coverImage || '');
+        setCurrentBookPdf(data.bookpdf || '');
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching book:', err.response?.data || err.message);
         setError('Failed to fetch book data. Please try again.');
-        setLoading(false); // Stop loading
-        // Optionally, navigate if book is not found or other fatal error
-        // navigate('/books');
+        setLoading(false);
       }
     };
 
-    // Trigger fetch when access token is available and not loading
     if (auth?.accessToken && !auth.loading) {
       fetchBook();
-    } else if (!auth?.loading && !auth?.accessToken) { // If not loading and no token, redirect to login
+    } else if (!auth?.loading && !auth?.accessToken) {
       navigate('/login', { state: { from: window.location.pathname }, replace: true });
     }
-  }, [id, auth?.accessToken, auth?.loading, auth?.user?.role, navigate]); // Add all relevant dependencies
+  }, [id, auth?.accessToken, auth?.loading, auth?.user?.role, navigate]);
 
-  // Handle changes for text input fields
   const handleChange = (e) => {
     const { name, value } = e.target;
     switch (name) {
@@ -401,217 +388,198 @@ const EditBook = () => {
     }
   };
 
-  // Handle change for cover image file input
   const handleCoverImageChange = (e) => {
     setCoverImageFile(e.target.files[0]);
   };
 
-  // Handle change for book PDF file input
   const handleBookPdfChange = (e) => {
     setBookPdfFile(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null); // Clear previous errors
-    setSuccess(null); // Clear previous success messages
+    setError(null);
+    setSuccess(null);
 
     const formData = new FormData();
-    // Append all current text field values
     formData.append('title', title);
     formData.append('author', author);
     formData.append('description', description);
     formData.append('genre', genre);
     formData.append('price', price);
 
-    // Append new cover image file ONLY if one is selected by the user
     if (coverImageFile) {
       formData.append('coverImage', coverImageFile);
     }
-    // Append new book PDF file ONLY if one is selected by the user
     if (bookPdfFile) {
-      formData.append('bookpdf', bookPdfFile); // Ensure this matches Multer's field name
+      formData.append('bookpdf', bookPdfFile);
     }
 
     try {
       await axiosInstance.put(`${import.meta.env.VITE_API_URL}/books/${id}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // Essential header for sending files
-          Authorization: `Bearer ${auth?.accessToken}`, // Pass token for authentication
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${auth?.accessToken}`,
         },
       });
       setSuccess('Book updated successfully!');
-      // Navigate to the book list page after a short delay
-      setTimeout(() => navigate('/books'), 1500); // <-- DIRECT TO BOOK LIST
-
+      setTimeout(() => navigate('/books'), 1500);
     } catch (err) {
       console.error('Update failed:', err.response?.data || err.message);
       setError(err.response?.data?.message || 'Failed to update book. Please try again.');
     }
   };
 
-  // Render loading state
   if (loading) {
     return <div className="text-center mt-8 text-black text-lg font-medium">Loading book data...</div>;
   }
 
-  // Render unauthorized access message (after loading)
   if (error && error.includes("Unauthorized")) {
     return <div className="text-red-600 text-center mt-8 text-lg font-medium">{error}</div>;
   }
 
-  // Main render for the edit form
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold text-black mb-4 text-center">Edit Book</h2>
-      <form onSubmit={handleSubmit} className="space-y-4 text-black" encType="multipart/form-data">
-        {/* Title */}
-        <div className="flex flex-col">
-          <label htmlFor="title" className="text-gray-700 text-sm font-bold mb-1">Title:</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={title}
-            onChange={handleChange}
-            placeholder="Title"
-            className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        {/* Author */}
-        <div className="flex flex-col">
-          <label htmlFor="author" className="text-gray-700 text-sm font-bold mb-1">Author:</label>
-          <input
-            type="text"
-            id="author"
-            name="author"
-            value={author}
-            onChange={handleChange}
-            placeholder="Author"
-            className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Description */}
-        <div className="flex flex-col">
-          <label htmlFor="description" className="text-gray-700 text-sm font-bold mb-1">Description:</label>
-          <textarea
-            id="description"
-            name="description"
-            value={description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="w-full border p-2 rounded text-gray-800 h-24 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Genre */}
-        <div className="flex flex-col">
-          <label htmlFor="genre" className="text-gray-700 text-sm font-bold mb-1">Genre:</label>
-          <input
-            type="text"
-            id="genre"
-            name="genre"
-            value={genre}
-            onChange={handleChange}
-            placeholder="Genre"
-            className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Price */}
-        <div className="flex flex-col">
-          <label htmlFor="price" className="text-gray-700 text-sm font-bold mb-1">Price:</label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            value={price}
-            onChange={handleChange}
-            placeholder="Price"
-            className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Current Cover Image Display */}
-        {currentCoverImage && (
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Current Cover Image:</label>
-            <img
-              src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${currentCoverImage}`}
-              alt="Current Cover"
-              className="w-32 h-32 object-cover rounded shadow border border-gray-200"
-              onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }} // Fallback image
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-xl bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-bold text-black mb-4 text-center">Edit Book</h2>
+        <form onSubmit={handleSubmit} className="space-y-4 text-black" encType="multipart/form-data">
+          <div className="flex flex-col">
+            <label htmlFor="title" className="text-gray-700 text-sm font-bold mb-1">Title:</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={title}
+              onChange={handleChange}
+              placeholder="Title"
+              className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
-            <span className="text-gray-600 text-sm block mt-1">{currentCoverImage}</span>
           </div>
-        )}
 
-        {/* Change Cover Image Input */}
-        <div className="flex flex-col">
-          <label htmlFor="coverImage" className="text-gray-700 text-sm font-bold mb-1">Change Cover Image (optional):</label>
-          <input
-            type="file"
-            id="coverImage"
-            name="coverImage"
-            onChange={handleCoverImageChange}
-            className="w-full border p-2 rounded text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            accept="image/*" // Restrict to image files
-          />
-        </div>
+          <div className="flex flex-col">
+            <label htmlFor="author" className="text-gray-700 text-sm font-bold mb-1">Author:</label>
+            <input
+              type="text"
+              id="author"
+              name="author"
+              value={author}
+              onChange={handleChange}
+              placeholder="Author"
+              className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* Current Book PDF Display */}
-        {currentBookPdf && (
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Current Book PDF:</label>
-            <span className="text-gray-600 text-sm block">{currentBookPdf}</span>
-            <a
-              href={`${import.meta.env.VITE_API_URL}/books/${id}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline text-sm mt-1 inline-block"
+          <div className="flex flex-col">
+            <label htmlFor="description" className="text-gray-700 text-sm font-bold mb-1">Description:</label>
+            <textarea
+              id="description"
+              name="description"
+              value={description}
+              onChange={handleChange}
+              placeholder="Description"
+              className="w-full border p-2 rounded text-gray-800 h-24 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="genre" className="text-gray-700 text-sm font-bold mb-1">Genre:</label>
+            <input
+              type="text"
+              id="genre"
+              name="genre"
+              value={genre}
+              onChange={handleChange}
+              placeholder="Genre"
+              className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="price" className="text-gray-700 text-sm font-bold mb-1">Price:</label>
+            <input
+              type="number"
+              id="price"
+              name="price"
+              value={price}
+              onChange={handleChange}
+              placeholder="Price"
+              className="w-full border p-2 rounded text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {currentCoverImage && (
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Current Cover Image:</label>
+              <img
+                src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${currentCoverImage}`}
+                alt="Current Cover"
+                className="w-32 h-32 object-cover rounded shadow border border-gray-200"
+                onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }}
+              />
+              <span className="text-gray-600 text-sm block mt-1">{currentCoverImage}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <label htmlFor="coverImage" className="text-gray-700 text-sm font-bold mb-1">Change Cover Image (optional):</label>
+            <input
+              type="file"
+              id="coverImage"
+              name="coverImage"
+              onChange={handleCoverImageChange}
+              className="w-full border p-2 rounded text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              accept="image/*"
+            />
+          </div>
+
+          {currentBookPdf && (
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Current Book PDF:</label>
+              <span className="text-gray-600 text-sm block">{currentBookPdf}</span>
+              <a
+                href={`${import.meta.env.VITE_API_URL}/books/${id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-sm mt-1 inline-block"
+              >
+                View Current PDF
+              </a>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <label htmlFor="bookpdf" className="text-gray-700 text-sm font-bold mb-1">Change Book PDF (optional):</label>
+            <input
+              type="file"
+              id="bookpdf"
+              name="bookpdf"
+              onChange={handleBookPdfChange}
+              className="w-full border p-2 rounded text-black-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              accept="application/pdf"
+            />
+          </div>
+
+          {error && <div className="text-red-600 text-center text-sm font-medium">{error}</div>}
+          {success && <div className="text-green-600 text-center text-sm font-medium">{success}</div>}
+
+          <div className="flex items-center justify-between mt-6">
+            <button
+              type="submit"
+              className="bg-blue-600 text-black px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              View Current PDF
-            </a>
+              Update Book
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/books')}
+              className="bg-gray-500 text-black px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
           </div>
-        )}
-
-        {/* Change Book PDF Input */}
-        <div className="flex flex-col">
-          <label htmlFor="bookpdf" className="text-gray-700 text-sm font-bold mb-1">Change Book PDF (optional):</label>
-          <input
-            type="file"
-            id="bookpdf"
-            name="bookpdf"
-            onChange={handleBookPdfChange}
-            className="w-full border p-2 rounded text-black-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            accept="application/pdf" // Restrict to PDF files
-          />
-        </div>
-
-        {/* Error and Success Messages */}
-        {error && <div className="text-red-600 text-center text-sm font-medium">{error}</div>}
-        {success && <div className="text-green-600 text-center text-sm font-medium">{success}</div>}
-
-        {/* Submit and Cancel Buttons */}
-        <div className="flex items-center justify-between mt-6">
-          <button
-            type="submit"
-            className="bg-blue-600 text-black px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Update Book
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/books')}
-            className="bg-gray-500 text-black px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

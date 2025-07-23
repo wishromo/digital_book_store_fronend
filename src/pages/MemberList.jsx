@@ -74,7 +74,7 @@ const MemberList = () => {
           >
             {member.profileImage && (
               <img
-                src={`http://localhost:5000/uploads/${member.profileImage}`}
+                 src={`${import.meta.env.VITE_STATIC_URL}/uploads/${member.profileImage}`}
                 alt={member.name}
                 className="w-full h-40 object-cover rounded mb-2"
               />
